@@ -45,7 +45,7 @@ final class NetSuiteClientServiceProvider extends ServiceProvider
                 environment: $config['environment'] ?? NetSuiteConfig::ENV_SANDBOX,
                 scopes: $config['scopes'] ?? ['restlets', 'rest_webservices'],
                 tbaHashAlgorithm: $config['tba']['hash_algorithm'] ?? 'sha256',
-                maxAttempts: $config['max_attempts'] ?? NetSuiteConfig::DEFAULT_MAX_ATTEMPTS,
+                maxAttempts: (int) $config['max_attempts'] ?? NetSuiteConfig::DEFAULT_MAX_ATTEMPTS,
             );
         });
 
@@ -75,7 +75,7 @@ final class NetSuiteClientServiceProvider extends ServiceProvider
 
             $inner = ($logging['enabled'] ?? false)
                 ? new RetryMiddleware(
-                    new LoggingMiddleware(new GuzzleClient(), new FileRequestLogger($logging['path'])),
+                    new LoggingMiddleware(new GuzzleClient(), new FileRequestLogger($this->resolveLogPath($logging['path'] ?? null))),
                     maxAttempts: $config->maxAttempts,
                 )
                 : null;
@@ -89,6 +89,16 @@ final class NetSuiteClientServiceProvider extends ServiceProvider
             $app->make(ResponseParser::class),
         ));
     }
+
+    private function resolveLogPath(?string $path): string
+    {
+        $path ??= storage_path('logs/netsuite');
+
+        return str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1
+            ? $path
+            : storage_path($path);
+    }
+
 
     public function boot(): void
     {
