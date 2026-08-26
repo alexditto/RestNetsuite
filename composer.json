@@ -1,0 +1,51 @@
+{
+    "name": "ditto/netsuite-client",
+    "description": "Framework-agnostic PHP client for NetSuite's SuiteTalk REST API, with an optional Laravel bridge.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["netsuite", "suitetalk", "rest", "suiteql", "laravel"],
+    "require": {
+        "php": "^8.2",
+        "guzzlehttp/guzzle": "^7.8",
+        "psr/http-client": "^1.0",
+        "psr/http-client-implementation": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-message": "^1.1|^2.0",
+        "psr/simple-cache": "^2.0|^3.0",
+        "firebase/php-jwt": "^7.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "orchestra/testbench": "^9.0|^10.0"
+    },
+    "suggest": {
+        "illuminate/support": "Required to use the Laravel service provider and facade bridge."
+    },
+    "autoload": {
+        "psr-4": {
+            "Ditto\\NetSuiteClient\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ditto\\NetSuiteClient\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ditto\\NetSuiteClient\\Laravel\\NetSuiteClientServiceProvider"
+            ],
+            "aliases": {
+                "NetSuite": "Ditto\\NetSuiteClient\\Laravel\\Facades\\NetSuite"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "phpunit",
+        "test:sandbox": "phpunit -c phpunit-sandbox.xml.dist"
+    }
+}
