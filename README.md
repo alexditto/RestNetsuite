@@ -1,4 +1,4 @@
-# ditto/netsuite-client
+# aditto/netsuite-client
 
 Framework-agnostic PHP client for NetSuite's SuiteTalk REST API, with an optional
 Laravel bridge (service provider + config publishing). Built to replace SOAP-based
@@ -31,7 +31,7 @@ live account.
 ## Installation
 
 ```bash
-composer require ditto/netsuite-client
+composer require aditto/netsuite-client
 ```
 
 In a Laravel app, publish the config file:

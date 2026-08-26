@@ -1,5 +1,5 @@
 {
-    "name": "ditto/netsuite-client",
+    "name": "aditto/netsuite-client",
     "description": "Framework-agnostic PHP client for NetSuite's SuiteTalk REST API, with an optional Laravel bridge.",
     "type": "library",
     "license": "MIT",
