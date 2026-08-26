@@ -196,6 +196,36 @@ normalize any record type's field names. Always read fields back using the casin
 NetSuite actually returns (check a real response, or NetSuite's REST record browser),
 not whatever casing happened to work on a write.
 
+## Logging requests and responses
+
+For local debugging, every REST request/response pair can be logged to disk as a
+correlated pair of plain-text files (`{id}.request.txt` / `{id}.response.txt`), one
+attempt per pair — including each retried attempt on a 429, not just the final one.
+`Authorization` headers are redacted before writing. This is off by default and meant
+for local debugging, not production traffic.
+
+In Laravel, enable it via config/env:
+
+```
+NETSUITE_LOG_REQUESTS=true
+NETSUITE_LOG_PATH=/path/to/log/dir   # defaults to storage_path('logs/netsuite')
+```
+
+Outside Laravel, compose `LoggingMiddleware` into the client chain yourself:
+
+```php
+use Ditto\NetSuiteClient\Http\FileRequestLogger;
+use Ditto\NetSuiteClient\Http\HttpClient;
+use Ditto\NetSuiteClient\Http\LoggingMiddleware;
+use Ditto\NetSuiteClient\Http\RetryMiddleware;
+use GuzzleHttp\Client as GuzzleClient;
+
+$client = new HttpClient($config, $authStrategy, new RetryMiddleware(
+    new LoggingMiddleware(new GuzzleClient(), new FileRequestLogger('/path/to/log/dir')),
+    maxAttempts: $config->maxAttempts,
+));
+```
+
 ## Migrating from SOAP (netsuitephp/netsuite-php)
 
 Most SOAP calls collapse to a single `get`/`create`/`update`/`replace`/`delete`/`query`

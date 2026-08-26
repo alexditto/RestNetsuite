@@ -12,6 +12,13 @@ return [
     'scopes' => ['restlets', 'rest_webservices'],
     'max_attempts' => env('NETSUITE_MAX_ATTEMPTS', NetSuiteConfig::DEFAULT_MAX_ATTEMPTS),
 
+    // Logs every REST request/response pair to $path as {id}.request.txt / {id}.response.txt.
+    // Off by default — meant for local debugging, not production traffic.
+    'logging' => [
+        'enabled' => env('NETSUITE_LOG_REQUESTS', false),
+        'path' => env('NETSUITE_LOG_PATH', storage_path('logs/netsuite')),
+    ],
+
     // Used when auth_method is 'oauth2' (OAuth 2.0 Client Credentials / M2M).
     'oauth2' => [
         'client_id' => env('NETSUITE_CLIENT_ID'),

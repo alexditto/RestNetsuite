@@ -9,11 +9,14 @@ use Ditto\NetSuiteClient\Auth\OAuth2Strategy;
 use Ditto\NetSuiteClient\Auth\TokenBasedAuthStrategy;
 use Ditto\NetSuiteClient\Http\EndpointBuilder;
 use Ditto\NetSuiteClient\Http\HttpClient;
+use Ditto\NetSuiteClient\Http\LoggingMiddleware;
+use Ditto\NetSuiteClient\Http\RetryMiddleware;
 use Ditto\NetSuiteClient\Laravel\NetSuiteClientServiceProvider;
 use Ditto\NetSuiteClient\NetSuiteConfig;
 use Ditto\NetSuiteClient\RecordClient;
 use Ditto\NetSuiteClient\Responses\ResponseParser;
 use Orchestra\Testbench\TestCase;
+use ReflectionProperty;
 
 final class NetSuiteClientServiceProviderTest extends TestCase
 {
@@ -78,6 +81,32 @@ final class NetSuiteClientServiceProviderTest extends TestCase
         $this->app->forgetInstance(AuthStrategy::class);
 
         $this->assertInstanceOf(OAuth2Strategy::class, $this->app->make(AuthStrategy::class));
+    }
+
+    public function test_it_does_not_wire_logging_middleware_by_default(): void
+    {
+        $httpClient = $this->app->make(HttpClient::class);
+
+        $retryMiddleware = (new ReflectionProperty(HttpClient::class, 'inner'))->getValue($httpClient);
+        $this->assertInstanceOf(RetryMiddleware::class, $retryMiddleware);
+
+        $rawClient = (new ReflectionProperty(RetryMiddleware::class, 'inner'))->getValue($retryMiddleware);
+        $this->assertNotInstanceOf(LoggingMiddleware::class, $rawClient);
+    }
+
+    public function test_it_wires_logging_middleware_when_enabled(): void
+    {
+        $this->app['config']->set('netsuite-client.logging.enabled', true);
+        $this->app['config']->set('netsuite-client.logging.path', sys_get_temp_dir() . '/netsuite-client-test-' . uniqid('', true));
+        $this->app->forgetInstance(HttpClient::class);
+
+        $httpClient = $this->app->make(HttpClient::class);
+
+        $retryMiddleware = (new ReflectionProperty(HttpClient::class, 'inner'))->getValue($httpClient);
+        $this->assertInstanceOf(RetryMiddleware::class, $retryMiddleware);
+
+        $rawClient = (new ReflectionProperty(RetryMiddleware::class, 'inner'))->getValue($retryMiddleware);
+        $this->assertInstanceOf(LoggingMiddleware::class, $rawClient);
     }
 
     public function test_it_publishes_the_config_file(): void

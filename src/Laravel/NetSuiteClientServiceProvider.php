@@ -11,10 +11,14 @@ use Ditto\NetSuiteClient\Auth\OAuth2Strategy;
 use Ditto\NetSuiteClient\Auth\TokenBasedAuthStrategy;
 use Ditto\NetSuiteClient\Auth\TokenManager;
 use Ditto\NetSuiteClient\Http\EndpointBuilder;
+use Ditto\NetSuiteClient\Http\FileRequestLogger;
 use Ditto\NetSuiteClient\Http\HttpClient;
+use Ditto\NetSuiteClient\Http\LoggingMiddleware;
+use Ditto\NetSuiteClient\Http\RetryMiddleware;
 use Ditto\NetSuiteClient\NetSuiteConfig;
 use Ditto\NetSuiteClient\RecordClient;
 use Ditto\NetSuiteClient\Responses\ResponseParser;
+use GuzzleHttp\Client as GuzzleClient;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Psr\SimpleCache\CacheInterface;
@@ -65,10 +69,19 @@ final class NetSuiteClientServiceProvider extends ServiceProvider
             };
         });
 
-        $this->app->singleton(HttpClient::class, fn (Application $app): HttpClient => new HttpClient(
-            $app->make(NetSuiteConfig::class),
-            $app->make(AuthStrategy::class),
-        ));
+        $this->app->singleton(HttpClient::class, function (Application $app): HttpClient {
+            $config = $app->make(NetSuiteConfig::class);
+            $logging = $app['config']->get('netsuite-client.logging', []);
+
+            $inner = ($logging['enabled'] ?? false)
+                ? new RetryMiddleware(
+                    new LoggingMiddleware(new GuzzleClient(), new FileRequestLogger($logging['path'])),
+                    maxAttempts: $config->maxAttempts,
+                )
+                : null;
+
+            return new HttpClient($config, $app->make(AuthStrategy::class), $inner);
+        });
 
         $this->app->singleton(RecordClient::class, fn (Application $app): RecordClient => new RecordClient(
             $app->make(HttpClient::class),
