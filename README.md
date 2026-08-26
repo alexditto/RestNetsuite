@@ -1,33 +1,26 @@
 # ditto/netsuite-client
 
 Framework-agnostic PHP client for NetSuite's SuiteTalk REST API, with an optional
-Laravel bridge (service provider + config publishing). Built to replace the
-`netsuitephp/netsuite-laravel` SOAP integration ahead of Oracle's SOAP deprecation
-(2026.1 stops including new SOAP endpoints by default, 2027.1 disallows new SOAP
-integrations).
-
-See [`netsuite-client-project-outline.md`](./netsuite-client-project-outline.md) for
-the full MVP spec, scope, and phased build plan.
+Laravel bridge (service provider + config publishing). Built to replace SOAP-based
+NetSuite integrations (e.g. `netsuitephp/netsuite-laravel`) ahead of Oracle's SOAP
+deprecation (2026.1 stops including new SOAP endpoints by default, 2027.1 disallows
+new SOAP integrations).
 
 ## Status
 
-Everything scoped for v1 in the project outline is implemented and unit tested:
-`NetSuiteConfig`, the exception hierarchy, the Laravel service provider + `NetSuite`
-facade, both authentication methods (OAuth 2.0 Client Credentials/M2M and
-Token-Based Authentication), HTTP transport (auth-applying `HttpClient` +
-429-retry `RetryMiddleware`), response parsing (`ResponseParser` + `NetSuiteRecord` +
-`NetSuiteCollection`, with status/error-payload → exception mapping), and
-`RecordClient` itself (`get`/`create`/`update`/`replace`/`delete`/`query`).
+All v1 features are implemented and unit tested: `NetSuiteConfig`, the exception
+hierarchy, the Laravel service provider + `NetSuite` facade, both authentication
+methods (OAuth 2.0 Client Credentials/M2M and Token-Based Authentication), HTTP
+transport (auth-applying `HttpClient` + 429-retry `RetryMiddleware`), response parsing
+(`ResponseParser` + `NetSuiteRecord` + `NetSuiteCollection`, with status/error-payload
+→ exception mapping), and `RecordClient` itself
+(`get`/`create`/`update`/`replace`/`delete`/`query`).
 
-Validated against a real NetSuite sandbox via TBA: full `customer` CRUD round-trip and
-paginated SuiteQL both pass for real (`composer test:sandbox` — see
-`tests/Sandbox/README.md`; these tests aren't committed to the repo by design), and a
-real integration-service SOAP method (`unsubscribeContact`) has been swapped for this
-package's `RecordClient::update()` and verified against a real contact record (see
-"Migrating from SOAP" below) — the project outline's Phase 7 smoke test. OAuth2 M2M is
-still unverified against a live account, and no consuming app has actually been
-switched over in its own codebase yet — this was validated standalone, not by editing
-one of the three apps' repos.
+Token-Based Authentication has been validated against a real NetSuite sandbox: full
+`customer` CRUD round-trip and paginated SuiteQL both pass (`composer test:sandbox` —
+see `tests/Sandbox/README.md`; these tests aren't committed to the repo by design).
+OAuth 2.0 M2M is built to NetSuite's documented spec but not yet confirmed against a
+live account.
 
 ## Requirements
 
@@ -54,6 +47,14 @@ Authentication (TBA) or OAuth 2.0 Client Credentials (M2M). TBA is simpler to se
 (no certificate management) and is what this package has actually been validated
 against; OAuth2 M2M is built to NetSuite's documented spec but not yet confirmed
 live (see Status above).
+
+Full step-by-step walkthroughs for each method live in `docs/`:
+
+- [Token-Based Authentication setup](./docs/netsuite-setup-tba.md)
+- [OAuth 2.0 M2M setup](./docs/netsuite-setup-oauth2.md)
+
+The summary below covers both together; use the dedicated guide above for the
+full click-by-click process.
 
 ### 1. Enable features
 
@@ -199,10 +200,8 @@ not whatever casing happened to work on a write.
 
 Most SOAP calls collapse to a single `get`/`create`/`update`/`replace`/`delete`/`query`
 call, since SOAP's typed request/response objects mostly boil down to "record type +
-field values." Example — an integration service method that unsubscribes a contact
-from email by clearing a custom field, verified against a real sandbox record as part
-of this package's own validation (`custentity_email_subscribed: true` → `false`,
-confirmed via a follow-up read):
+field values." Example — a method that unsubscribes a contact from email by clearing a
+custom field:
 
 ```php
 // Before (netsuitephp/netsuite-php, SOAP)
