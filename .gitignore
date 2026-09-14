@@ -13,3 +13,4 @@ netsuite-client-project-outline.md
 # tests/Sandbox/README.md. The harness (SandboxTestCase, bootstrap, this README) stays
 # tracked; only the actual test files (which touch real sandbox data) are excluded.
 /tests/Sandbox/Tests/
+netsuite-private-key.pem

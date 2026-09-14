@@ -26,7 +26,7 @@ final class JwtBuilder
 
         $payload = [
             'iss' => $this->config->clientId,
-            'scope' => $this->config->scopes,
+            'scope' => implode(',', $this->config->scopes),
             'aud' => $audience,
             'iat' => $issuedAt,
             'exp' => $issuedAt + $this->lifetimeSeconds,

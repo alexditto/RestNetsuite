@@ -37,34 +37,59 @@ anywhere, only referenced locally by path.
   (Machine to Machine) Grant**.
 - Select the scope(s) this integration needs (at minimum, REST Web Services).
 - Save.
+- Confirm **State** is **Enabled**.
 
-NetSuite shows a **Client ID** on save — this maps to:
+NetSuite shows a **Client ID** on save, in a one-time confirmation banner —
+this maps to:
 
 ```
 NETSUITE_CLIENT_ID=<Client ID>
 ```
 
-## 4. Upload the certificate
+**Don't confuse this with the Application ID** — the Integration record also
+has a permanent, always-visible **Application ID** field, which is a
+different value used for other auth flows. Using it here silently breaks
+token requests (NetSuite returns a generic `{"error":"server_error"}` with no
+indication which field was wrong — see Troubleshooting below).
 
-On the same Integration record, open the **Certificates** subtab and upload
-`netsuite-cert.pem` from step 2.
+## 4. Create the OAuth 2.0 Client Credentials (M2M) Setup mapping
 
-NetSuite assigns a **Certificate ID** once uploaded — this maps to:
+This step is easy to miss and **is mandatory** — the Integration record alone
+is not enough for the Client Credentials grant to work, regardless of how it's
+configured.
+
+**Setup → Integration → Manage Authentication → OAuth 2.0 Client Credentials
+(M2M) Setup → Create New.**
+
+- **Application** — the Integration record from step 3 (only selectable
+  because Client Credentials (M2M) Grant is checked on it).
+- **Entity** — the (active) employee whose permissions the machine-to-machine
+  calls run as.
+- **Role** — a role assigned to that entity with REST Web Services login
+  access, "Log in using OAuth 2.0 Access Tokens" permission, and standard
+  View/Create/Edit/Full permissions for every record type this client will
+  touch.
+- **Certificate** — upload `netsuite-cert.pem` from step 2 here.
+- Save.
+
+NetSuite assigns a **Certificate ID** to the uploaded certificate — this is
+the JWT's `kid` (key ID) header claim, and maps to:
 
 ```
 NETSUITE_CERTIFICATE_ID=<Certificate ID>
 ```
 
-The Certificate ID must match the JWT's `kid` (key ID) header claim — this
-client sets that automatically from `NETSUITE_CERTIFICATE_ID`, so no manual JWT
-construction is needed.
+`NETSUITE_PRIVATE_KEY_PATH` must point at the private key paired with
+*this* uploaded certificate — if you regenerate the keypair/certificate at any
+point, both the Certificate ID and the private key path need to be updated
+together. A mismatched pair produces the same undifferentiated
+`server_error` as every other setup mistake here.
 
 ## 5. Grant role permissions
 
-Whichever role/user this Integration record's Client Credentials grant runs as
-needs REST Web Services login access plus standard View/Create/Edit/Full
-permissions for every record type this client will touch, same as any other
-NetSuite REST consumer.
+Covered by the Role selected in step 4 — see the bullet above. There's no
+separate permissions step; the mapping's Entity/Role *is* what NetSuite uses
+to authorize the token.
 
 ## 6. Full configuration
 
@@ -81,20 +106,47 @@ determines the sandbox vs. production API host.
 
 ## Certificate rotation
 
-Certificates uploaded to the Integration record are valid for up to 2 years
-(matching the `-days 730` used above). Rotation is manual: generate a new
-keypair, upload the new certificate (NetSuite will assign a new Certificate
-ID), update `NETSUITE_CERTIFICATE_ID`/`NETSUITE_PRIVATE_KEY_PATH`, then remove
-the old certificate from the Integration record.
+Certificates uploaded to the M2M Setup mapping are valid for up to 2 years
+(matching the `-days 730` used above; max 5 active certificates per
+Integration record). Rotation is manual: generate a new keypair, upload the
+new certificate to the mapping (NetSuite assigns a new Certificate ID), update
+`NETSUITE_CERTIFICATE_ID`/`NETSUITE_PRIVATE_KEY_PATH` together, then revoke
+the old certificate. **Sandbox refresh clears the M2M Setup mapping** — it
+must be recreated (step 4) after every sandbox refresh; the Integration record
+itself survives the refresh.
 
 ## Troubleshooting
 
-- **Token request fails / `NetSuiteAuthException` from `TokenManager`** — check
-  that `NETSUITE_CLIENT_ID` and `NETSUITE_CERTIFICATE_ID` both belong to the same
-  Integration record, and that the certificate hasn't expired or been removed.
-- **This method is unverified against a live NetSuite account** — the JWT claim
-  shapes, `kid` requirement, and token endpoint path are built from NetSuite's
-  documented OAuth 2.0 M2M spec, but if something doesn't work end-to-end, that's
-  the most likely place to start debugging. If you get this working against a
-  real account, it'd help the project to note what (if anything) differed from
-  this guide.
+NetSuite's OAuth 2.0 token endpoint returns an undifferentiated
+`{"error":"server_error"}` (HTTP 500) for most Client Credentials setup
+mistakes, and these failures don't appear in **Login Audit Trail** — so the
+response gives no signal about which specific thing is wrong. If token
+requests fail, work through this checklist rather than guessing from the
+error text:
+
+- `NETSUITE_CLIENT_ID` is the Client ID from the Integration record's one-time
+  save banner, **not** the Application ID (see step 3).
+- The **OAuth 2.0 Client Credentials (M2M) Setup** mapping (step 4) actually
+  exists — the Integration record + certificate alone is not sufficient.
+- `NETSUITE_CERTIFICATE_ID` matches the certificate uploaded to *that mapping*
+  (not a certificate uploaded anywhere else), and `NETSUITE_PRIVATE_KEY_PATH`
+  points at the exact private key paired with it.
+- The Integration record's **State** is **Enabled**.
+- The mapping's **Entity** is an active employee, and its **Role** has REST
+  Web Services login access, "Log in using OAuth 2.0 Access Tokens"
+  permission, and the record-level permissions this client needs.
+- **REST Web Services** and **OAuth 2.0** are both enabled under
+  Setup → Company → Enable Features → SuiteCloud (separate from the
+  Integration record's own checkboxes).
+- If it was working before and stopped, check whether the sandbox was
+  refreshed — that clears the M2M mapping (see Certificate rotation above).
+
+This method is still **unverified end-to-end against a live account** — a
+2026-09-14 investigation against a real OneWorld sandbox worked through this
+entire checklist (confirming each item individually) and still got a bare
+`server_error` from the token endpoint with no further diagnostic signal
+available outside NetSuite. If you get this working, it would help the
+project to record what (if anything) differed from this guide — otherwise the
+next likely step is a NetSuite support case, since 500s that never reach the
+audit trail point at something NetSuite-side that isn't independently
+verifiable from outside their UI.

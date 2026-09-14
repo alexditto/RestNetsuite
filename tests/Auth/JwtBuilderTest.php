@@ -40,10 +40,32 @@ final class JwtBuilderTest extends TestCase
         $claims = JWT::decode($jwt, new Key($publicKeyPem, 'ES256'));
 
         $this->assertSame('client-id', $claims->iss);
-        $this->assertSame(['rest_webservices'], $claims->scope);
+        $this->assertSame('rest_webservices', $claims->scope);
         $this->assertSame('https://example.com/token', $claims->aud);
         $this->assertSame($now, $claims->iat);
         $this->assertSame($now + 120, $claims->exp);
+    }
+
+    public function test_it_joins_multiple_scopes_into_a_comma_separated_string(): void
+    {
+        // NetSuite's documented request token structure specifies scope as a string —
+        // a single scope name, or a comma-separated string for multiple scopes — not a
+        // JSON array, which is what a bare PHP array would serialize to.
+        $config = new NetSuiteConfig(
+            accountId: '1234567_SB1',
+            authMethod: AuthMethod::OAuth2,
+            clientId: 'client-id',
+            certificateId: 'certificate-id',
+            privateKeyPath: __DIR__ . '/../Fixtures/es256-test-private-key.pem',
+            scopes: ['restlets', 'rest_webservices'],
+        );
+
+        $jwt = (new JwtBuilder($config))->build('https://example.com/token');
+
+        $publicKeyPem = file_get_contents(__DIR__ . '/../Fixtures/es256-test-public-key.pem');
+        $claims = JWT::decode($jwt, new Key($publicKeyPem, 'ES256'));
+
+        $this->assertSame('restlets,rest_webservices', $claims->scope);
     }
 
     private function base64UrlDecode(string $data): string

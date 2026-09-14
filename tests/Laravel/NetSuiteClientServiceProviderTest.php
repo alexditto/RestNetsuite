@@ -109,6 +109,22 @@ final class NetSuiteClientServiceProviderTest extends TestCase
         $this->assertInstanceOf(LoggingMiddleware::class, $rawClient);
     }
 
+    public function test_it_resolves_a_relative_log_path_against_the_storage_directory(): void
+    {
+        $this->app['config']->set('netsuite-client.logging.enabled', true);
+        $this->app['config']->set('netsuite-client.logging.path', 'logs/netsuite');
+        $this->app->forgetInstance(HttpClient::class);
+
+        $httpClient = $this->app->make(HttpClient::class);
+
+        $retryMiddleware = (new ReflectionProperty(HttpClient::class, 'inner'))->getValue($httpClient);
+        $loggingMiddleware = (new ReflectionProperty(RetryMiddleware::class, 'inner'))->getValue($retryMiddleware);
+        $logger = (new ReflectionProperty(LoggingMiddleware::class, 'logger'))->getValue($loggingMiddleware);
+        $directory = (new ReflectionProperty(\Ditto\NetSuiteClient\Http\FileRequestLogger::class, 'directory'))->getValue($logger);
+
+        $this->assertSame(storage_path('logs/netsuite'), $directory);
+    }
+
     public function test_it_publishes_the_config_file(): void
     {
         $this->artisan('vendor:publish', ['--tag' => 'netsuite-client-config'])->run();
