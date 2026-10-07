@@ -28,20 +28,21 @@ final class RecordClient
     public function __construct(
         private readonly ClientInterface $httpClient,
         private readonly EndpointBuilder $endpointBuilder,
-        private readonly ResponseParser $responseParser,
-        ?RequestFactoryInterface $requestFactory = null,
-        ?StreamFactoryInterface $streamFactory = null,
-    ) {
+        private readonly ResponseParser  $responseParser,
+        ?RequestFactoryInterface         $requestFactory = null,
+        ?StreamFactoryInterface          $streamFactory = null,
+    )
+    {
         $defaultFactory = ($requestFactory !== null && $streamFactory !== null) ? null : new HttpFactory();
 
         $this->requestFactory = $requestFactory ?? $defaultFactory;
         $this->streamFactory = $streamFactory ?? $defaultFactory;
     }
 
-    public function get(string $recordType, string $id): NetSuiteRecord
+    public function get(string $recordType, string $id, ?string $suffix = null): NetSuiteRecord
     {
         $request = $this->requestFactory
-            ->createRequest('GET', $this->endpointBuilder->recordUrl($recordType, $id))
+            ->createRequest('GET', $this->endpointBuilder->recordUrl($recordType, $id, $suffix))
             ->withHeader('Accept', 'application/json');
 
         $response = $this->httpClient->sendRequest($request);
@@ -52,9 +53,9 @@ final class RecordClient
     /**
      * @param array<string, mixed> $fields
      */
-    public function create(string $recordType, array $fields): NetSuiteRecord
+    public function create(string $recordType, array $fields, ?string $suffix = null): NetSuiteRecord
     {
-        $request = $this->jsonRequest('POST', $this->endpointBuilder->recordUrl($recordType), $fields);
+        $request = $this->jsonRequest('POST', $this->endpointBuilder->recordUrl($recordType, null, $suffix), $fields);
         $response = $this->httpClient->sendRequest($request);
 
         return $this->recordFromWriteResponse($response, $recordType, $fields, id: null);
@@ -63,9 +64,9 @@ final class RecordClient
     /**
      * @param array<string, mixed> $fields
      */
-    public function update(string $recordType, string $id, array $fields): NetSuiteRecord
+    public function update(string $recordType, string $id, array $fields, ?string $suffix = null): NetSuiteRecord
     {
-        $request = $this->jsonRequest('PATCH', $this->endpointBuilder->recordUrl($recordType, $id), $fields);
+        $request = $this->jsonRequest('PATCH', $this->endpointBuilder->recordUrl($recordType, $id, $suffix), $fields);
         $response = $this->httpClient->sendRequest($request);
 
         return $this->recordFromWriteResponse($response, $recordType, $fields, $id);
@@ -74,17 +75,17 @@ final class RecordClient
     /**
      * @param array<string, mixed> $fields
      */
-    public function replace(string $recordType, string $id, array $fields): NetSuiteRecord
+    public function replace(string $recordType, string $id, array $fields, ?string $suffix = null): NetSuiteRecord
     {
-        $request = $this->jsonRequest('PUT', $this->endpointBuilder->recordUrl($recordType, $id), $fields);
+        $request = $this->jsonRequest('PUT', $this->endpointBuilder->recordUrl($recordType, $id, $suffix), $fields);
         $response = $this->httpClient->sendRequest($request);
 
         return $this->recordFromWriteResponse($response, $recordType, $fields, $id);
     }
 
-    public function delete(string $recordType, string $id): void
+    public function delete(string $recordType, string $id, ?string $suffix = null): void
     {
-        $request = $this->requestFactory->createRequest('DELETE', $this->endpointBuilder->recordUrl($recordType, $id));
+        $request = $this->requestFactory->createRequest('DELETE', $this->endpointBuilder->recordUrl($recordType, $id, $suffix));
         $response = $this->httpClient->sendRequest($request);
 
         $this->responseParser->assertSuccessful($response);
@@ -112,13 +113,14 @@ final class RecordClient
      */
     private function recordFromWriteResponse(
         ResponseInterface $response,
-        string $recordType,
-        array $submittedFields,
-        ?string $id,
-    ): NetSuiteRecord {
+        string            $recordType,
+        array             $submittedFields,
+        ?string           $id,
+    ): NetSuiteRecord
+    {
         $this->responseParser->assertSuccessful($response);
 
-        if ((string) $response->getBody() !== '') {
+        if ((string)$response->getBody() !== '') {
             return $this->responseParser->parseRecord($response, $recordType);
         }
 
@@ -132,10 +134,10 @@ final class RecordClient
             return null;
         }
 
-        $path = (string) parse_url($location, PHP_URL_PATH);
+        $path = (string)parse_url($location, PHP_URL_PATH);
         $segments = array_values(array_filter(explode('/', rtrim($path, '/'))));
 
-        return $segments === [] ? null : (string) end($segments);
+        return $segments === [] ? null : (string)end($segments);
     }
 
     /**
