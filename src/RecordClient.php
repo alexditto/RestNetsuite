@@ -50,6 +50,17 @@ final class RecordClient
         return $this->responseParser->parseRecord($response, $recordType);
     }
 
+    public function getFromLink(string $recordType, string $link): NetSuiteRecord
+    {
+        $request = $this->requestFactory
+            ->createRequest('GET', $link)
+            ->withHeader('Accept', 'application/json');
+
+        $response = $this->httpClient->sendRequest($request);
+
+        return $this->responseParser->parseRecord($response, $recordType);
+    }
+
     /**
      * @param array<string, mixed> $fields
      */

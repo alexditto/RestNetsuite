@@ -71,6 +71,24 @@ final class RecordClientTest extends TestCase
         $this->assertSame('Acme Co', $record->get('entityid'));
     }
 
+    public function test_get_from_link_sends_a_get_request_to_the_given_link_and_returns_a_parsed_record(): void
+    {
+        $client = $this->fakeClient(new Response(200, [], json_encode([
+            'id' => '1196624',
+            'addr1' => '123 Main St',
+        ])));
+
+        $link = 'https://1234567-sb1.suitetalk.api.netsuite.com/services/rest/record/v1/vendor/941727/addressBook/1196624';
+
+        $record = $this->recordClient($client)->getFromLink('vendor', $link);
+
+        $this->assertSame('GET', $client->lastRequest->getMethod());
+        $this->assertSame($link, (string) $client->lastRequest->getUri());
+        $this->assertInstanceOf(NetSuiteRecord::class, $record);
+        $this->assertSame('1196624', $record->id);
+        $this->assertSame('123 Main St', $record->get('addr1'));
+    }
+
     public function test_get_throws_a_typed_exception_on_404(): void
     {
         $client = $this->fakeClient(new Response(404, [], json_encode(['title' => 'Record not found.'])));
