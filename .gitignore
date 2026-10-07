@@ -8,6 +8,8 @@ composer.lock
 .env
 CLAUDE.md
 netsuite-client-project-outline.md
+/storage/
+
 
 # Real tests against a live NetSuite sandbox account. Never committed — see
 # tests/Sandbox/README.md. The harness (SandboxTestCase, bootstrap, this README) stays

@@ -22,12 +22,16 @@ final class EndpointBuilder
         return $this->baseUrl() . '/services/rest/auth/oauth2/v1/token';
     }
 
-    public function recordUrl(string $recordType, ?string $id = null): string
+    public function recordUrl(string $recordType, ?string $id = null, ?string $suffix = null): string
     {
         $url = $this->baseUrl() . '/services/rest/record/v1/' . rawurlencode($recordType);
 
         if ($id !== null) {
             $url .= '/' . rawurlencode($id);
+        }
+
+        if ($suffix !== null) {
+            $url .= '/' . rawurlencode($suffix);
         }
 
         return $url;
