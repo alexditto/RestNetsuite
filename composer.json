@@ -38,7 +38,8 @@
                 "Ditto\\NetSuiteClient\\Laravel\\NetSuiteClientServiceProvider"
             ],
             "aliases": {
-                "NetSuite": "Ditto\\NetSuiteClient\\Laravel\\Facades\\NetSuite"
+                "NetSuite": "Ditto\\NetSuiteClient\\Laravel\\Facades\\NetSuite",
+                "Restlet": "Ditto\\NetSuiteClient\\Laravel\\Facades\\Restlet"
             }
         }
     },

@@ -45,6 +45,14 @@ final class EndpointBuilder
         ]);
     }
 
+    public function restletUrl(string $script, string $deploy): string
+    {
+        return "https://{$this->accountSubdomain()}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?" . http_build_query([
+            'script' => $script,
+            'deploy' => $deploy,
+        ]);
+    }
+
     private function accountSubdomain(): string
     {
         return strtolower(str_replace('_', '-', $this->config->accountId));

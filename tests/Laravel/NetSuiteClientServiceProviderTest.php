@@ -15,6 +15,7 @@ use Ditto\NetSuiteClient\Laravel\NetSuiteClientServiceProvider;
 use Ditto\NetSuiteClient\NetSuiteConfig;
 use Ditto\NetSuiteClient\RecordClient;
 use Ditto\NetSuiteClient\Responses\ResponseParser;
+use Ditto\NetSuiteClient\RestletClient;
 use Orchestra\Testbench\TestCase;
 use ReflectionProperty;
 
@@ -66,6 +67,13 @@ final class NetSuiteClientServiceProviderTest extends TestCase
         $recordClient = $this->app->make(RecordClient::class);
         $this->assertInstanceOf(RecordClient::class, $recordClient);
         $this->assertSame($recordClient, $this->app->make(RecordClient::class));
+    }
+
+    public function test_it_binds_the_full_restlet_client_dependency_chain(): void
+    {
+        $restletClient = $this->app->make(RestletClient::class);
+        $this->assertInstanceOf(RestletClient::class, $restletClient);
+        $this->assertSame($restletClient, $this->app->make(RestletClient::class));
     }
 
     public function test_it_resolves_an_oauth2_strategy_when_configured_for_oauth2(): void

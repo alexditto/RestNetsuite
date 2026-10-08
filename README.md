@@ -186,6 +186,41 @@ $client = new RecordClient(
 $client->get('customer', '123');
 ```
 
+### Calling RESTlets
+
+Alongside the standard record endpoints, the client can call custom RESTlets
+(script + deployment pairs) with any of the HTTP methods RESTlets support:
+
+```php
+use Ditto\NetSuiteClient\Http\RestletMethod;
+use Ditto\NetSuiteClient\Laravel\Facades\Restlet;
+
+$result = Restlet::call(script: '3489', deploy: '1', method: RestletMethod::Post, body: [
+    'customerId' => '123',
+]);
+```
+
+`script` and `deploy` are required — they're the internal ids from the RESTlet's
+script record and deployment record in NetSuite (`?script=3489&deploy=1` in the
+RESTlet's URL). `method` is a required `RestletMethod` enum case
+(`Get`/`Post`/`Put`/`Delete`), since RESTlets don't default to any one verb. `body` is
+an optional array, JSON-encoded and sent as the request body for any method.
+
+A RESTlet's response has no fixed shape — it's whatever the underlying SuiteScript
+returns — so `call()` returns the decoded JSON as-is (or the raw response string if
+the body isn't valid JSON), rather than a `NetSuiteRecord`/`NetSuiteCollection`.
+
+Outside Laravel, construct `RestletClient` the same way as `RecordClient` (same
+`HttpClient`/`EndpointBuilder`/`ResponseParser` dependencies):
+
+```php
+use Ditto\NetSuiteClient\RestletClient;
+
+$restletClient = new RestletClient($httpClient, $endpointBuilder, $responseParser);
+
+$restletClient->call('3489', '1', RestletMethod::Get);
+```
+
 ### A note on field names
 
 NetSuite's REST API returns field names in **camelCase** (`companyName`,

@@ -18,6 +18,7 @@ use Ditto\NetSuiteClient\Http\RetryMiddleware;
 use Ditto\NetSuiteClient\NetSuiteConfig;
 use Ditto\NetSuiteClient\RecordClient;
 use Ditto\NetSuiteClient\Responses\ResponseParser;
+use Ditto\NetSuiteClient\RestletClient;
 use GuzzleHttp\Client as GuzzleClient;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -84,6 +85,12 @@ final class NetSuiteClientServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(RecordClient::class, fn (Application $app): RecordClient => new RecordClient(
+            $app->make(HttpClient::class),
+            $app->make(EndpointBuilder::class),
+            $app->make(ResponseParser::class),
+        ));
+
+        $this->app->singleton(RestletClient::class, fn (Application $app): RestletClient => new RestletClient(
             $app->make(HttpClient::class),
             $app->make(EndpointBuilder::class),
             $app->make(ResponseParser::class),

@@ -63,6 +63,16 @@ final class EndpointBuilderTest extends TestCase
         );
     }
 
+    public function test_it_builds_the_restlet_url_with_script_and_deploy_params(): void
+    {
+        $builder = new EndpointBuilder($this->config());
+
+        $this->assertSame(
+            'https://1234567-sb1.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=3489&deploy=1',
+            $builder->restletUrl('3489', '1'),
+        );
+    }
+
     private function config(): NetSuiteConfig
     {
         return new NetSuiteConfig(

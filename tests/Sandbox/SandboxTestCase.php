@@ -15,6 +15,7 @@ use Ditto\NetSuiteClient\Http\HttpClient;
 use Ditto\NetSuiteClient\NetSuiteConfig;
 use Ditto\NetSuiteClient\RecordClient;
 use Ditto\NetSuiteClient\Responses\ResponseParser;
+use Ditto\NetSuiteClient\RestletClient;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -53,6 +54,17 @@ abstract class SandboxTestCase extends TestCase
         $config = $this->config();
 
         return new RecordClient(
+            new HttpClient($config, $this->authStrategy($config)),
+            new EndpointBuilder($config),
+            new ResponseParser(),
+        );
+    }
+
+    protected function restletClient(): RestletClient
+    {
+        $config = $this->config();
+
+        return new RestletClient(
             new HttpClient($config, $this->authStrategy($config)),
             new EndpointBuilder($config),
             new ResponseParser(),
